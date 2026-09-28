@@ -1,0 +1,29 @@
+# Minimal pgcli config tuned for non-interactive / agent use.
+# Used by scripts/pgq.sh (which also sets TERM=dumb and a sentinel --prompt).
+# Missing keys fall back to pgcli's built-in defaults, so only overrides live here.
+[main]
+
+# CSV output is trivially machine-parseable (pgcli quotes every field).
+# Swap for `tsv`, `github`, `psql`, `plain`, `vertical`, etc. via PGQ_FORMAT.
+table_format = csv
+
+# Drop the "Time: 0.0Ns" line that otherwise trails every result.
+timing = False
+
+# Skip the startup banner and the "Goodbye!" line.
+less_chatty = True
+
+# 0 = never trigger the interactive "row limit exceeded, continue?" prompt,
+# which would otherwise hang or consume piped stdin in non-interactive runs.
+row_limit = 0
+
+# Empty = never block on a destructive-statement confirmation prompt.
+# LEAVE EMPTY ONLY FOR READ QUERIES. For writes/DDL, prefer plain interactive
+# pgcli, or wrap the change in an explicit BEGIN; ... COMMIT; transaction.
+destructive_warning =
+
+# Suppress the "Using local time zone ..." banner (2 lines) on every run.
+use_local_timezone = False
+
+# Avoid OS-keyring prompts/errors in headless environments.
+keyring = False
