@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
-# Pull every local skill into ./skills. Sources are merged by name; when two
-# sources disagree, the copy with the newest SKILL.md wins. Symlinks are
-# dereferenced so the repo holds real files. Portable to macOS bash 3.2.
+# Pull newly installed local skills into ./skills. The repo is the source of
+# truth, so skills already here are left alone; pass --refresh to overwrite them
+# from the local copies. Sources are merged by name; when two disagree, the copy
+# with the newest SKILL.md wins. Symlinks are dereferenced so the repo holds real
+# files, and names in .collectignore are skipped. Portable to macOS bash 3.2.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEST="$ROOT/skills"
+REFRESH=0; [ "${1:-}" = "--refresh" ] && REFRESH=1
 SOURCES=("$HOME/.agents/skills" "$HOME/.claude/skills" "$HOME/.codex/skills")
 
 IGNORE="$ROOT/.collectignore"
@@ -36,6 +39,8 @@ count=0
 # newest first per name, keep the first row of each name
 sort -t$'\t' -k1,1 -k2,2nr "$WINNERS" | awk -F'\t' '!seen[$1]++' |
 while IFS=$'\t' read -r name _ dir; do
+  # already in the repo (or a symlink back into it): keep the repo's version
+  if [ -d "$DEST/$name" ] && [ "$REFRESH" = 0 ]; then continue; fi
   rm -rf "${DEST:?}/$name"
   rsync -aL --exclude .git --exclude node_modules --exclude .DS_Store --exclude '.env*' "$dir/" "$DEST/$name/"
 done

@@ -717,4 +717,4 @@ Effect.gen(function* () {
 - Effect docs: https://effect.website/docs/
 - API reference: https://effect-ts.github.io/effect/
 - GitHub: https://github.com/Effect-TS/effect
-- This codebase: `packages/cli-adapters/src/` (jingler) / `packages/services/src/` (trigify) for examples
+- Effect examples in the current repo: `rg -l "Effect.Service|Context.Tag|Layer\." --type ts`

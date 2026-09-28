@@ -108,3 +108,10 @@ suppressing-noisy-errors
 triaging-error-issues
 triaging-visual-review-runs
 working-with-skills
+
+# Personal Clive tooling (unpublished; dev-workflow supersedes the loop)
+clive-build
+clive-plan
+clive-review
+seed-memory
+contract-graph

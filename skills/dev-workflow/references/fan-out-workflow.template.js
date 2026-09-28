@@ -11,7 +11,7 @@ export const meta = {
 // ─────────────────────────────────────────────────────────────────────────────
 // CONTRACT — the router (dev-workflow Phase 2) passes args:
 //   args.epicBranch : string                  branch the lanes merge into
-//   args.verifyCmds : string[]                 e.g. ["yarn typecheck", "yarn lint", "yarn workspace @trigify/<pkg> test"]
+//   args.verifyCmds : string[]                 e.g. ["pnpm typecheck", "pnpm lint", "pnpm --filter <pkg> test"]
 //   args.issues     : Array<{
 //       id, identifier, title,
 //       type,            // 'feature' | 'bugfix' | 'refactor' | 'unit-tests' | 'spike'

@@ -1,6 +1,6 @@
 ---
 name: dev-workflow
-description: Default front-door workflow router. Use when the user asks to "create a workflow for this", "implement", "build", "fix", "refactor", "add", "plan this task", or hands over any non-trivial engineering request. Classifies the task, plans it interactively (interview + mandatory codebase research → Linear issues), then fans every task out in parallel across worktree-isolated agents via the Workflow tool, and reconciles results back to Linear. Replaces the clive plan/build/review loop.
+description: Default front-door workflow router. Use when the user asks to "create a workflow for this", "implement", "build", "fix", "refactor", "add", "plan this task", or hands over any non-trivial engineering request. Classifies the task, plans it interactively (interview + mandatory codebase research → Linear issues), then fans every task out in parallel across worktree-isolated agents via the Workflow tool, and reconciles results back to Linear.
 allowed-tools: Bash, Read, Glob, Grep, Edit, Write, Task, Workflow, AskUserQuestion, TaskCreate, TaskUpdate, TaskList, TaskGet, mcp__linear__*, mcp__linear-server__*
 model: opus
 ---
@@ -13,7 +13,7 @@ This is the **single deterministic entrypoint** for engineering work. Given any 
 3. **Fans out** execution in parallel: one worktree-isolated agent per issue, via the Workflow tool.
 4. **Reconciles** results back to Linear and reports.
 
-It **replaces** the clive plan/build/review loop. Linear is kept **only** as the issue/status
+Linear is kept **only** as the issue/status
 ledger — it does not drive execution. Parallelism comes from the Workflow tool, not hand-coordinated agent teams.
 
 > ## ⛔ NON-NEGOTIABLE: this skill executes via the Workflow tool
@@ -65,7 +65,7 @@ set with the user, and jump to Phase 2.
 ## Phase 1 · PLAN  (interactive, in this conversation)
 
 Goal: turn the request into a researched, approved set of Linear issues. **Never write code in
-this phase.** Mirrors the strong parts of the old clive-plan, minus the build handoff.
+this phase.**
 
 ### 1.1 Interview (one question at a time, plain text)
 Walk the 4-part framework, asking only what you actually don't know:

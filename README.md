@@ -17,9 +17,12 @@ and `~/.pi/agent/skills`. Edit a skill anywhere and it edits it here.
 
 ```bash
 git pull                 # get changes from the other laptop
-./scripts/collect.sh     # pull newly installed local skills into the repo
+./scripts/collect.sh     # pull newly installed local skills into the repo (existing ones untouched)
 git add -A && git commit -m "skills: sync" && git push
 ```
+
+The repo is the source of truth: edit skills here (or through the symlinks
+`install.sh` creates). `collect.sh --refresh` overwrites repo copies from local ones.
 
 `collect.sh` merges `~/.agents/skills`, `~/.claude/skills` and `~/.codex/skills`
 by name; where copies differ, the newest `SKILL.md` wins. Names in `.collectignore`

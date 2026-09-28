@@ -8,7 +8,7 @@ description: >-
   (ENOSPC), find what is eating storage, purge node_modules/build artifacts, or
   uninstall an app with all its remnants. Encodes which mole commands can run
   headlessly vs. which the user must run interactively, and how to avoid deleting
-  agent/session data (jingler, .claude, .codex).
+  agent/session data (~/.claude, ~/.codex, agent worktrees).
 ---
 
 # Mole — Mac cleanup
@@ -69,23 +69,23 @@ than hard-deleting — safer than direct removal.
 Never let a clean touch coding-agent memory, config, or live session data.
 
 **Whitelist** persists in `~/.config/mole/whitelist`, edited via
-`mo clean --whitelist`. This machine already protects:
+`mo clean --whitelist`. It should cover at least:
 
 ```
-/Users/morganparry/.claude
-/Users/morganparry/.codex
-/Users/morganparry/repos/trigify-app/.claude
-/Users/morganparry/repos/trigify-app/.codex
+~/.claude
+~/.codex
+~/.pi
+<repo>/.claude     # per-project agent config in each repo you work in
+<repo>/.codex
 ```
 
-Before recommending a clean, confirm the whitelist still covers `.claude` and
-`.codex`. Add any new agent-data paths the same way.
+Before recommending a clean, read `~/.config/mole/whitelist` and confirm it
+covers the agent directories present on this machine. Add any missing ones.
 
-**Jingler data lives in `~/jingler` and is NOT a cache — never purge it.**
-Especially `~/jingler/worktrees` (git worktrees for live sessions, often tens of
-GB) holds uncommitted work. `mo clean`/`mo purge` do not target `~/jingler` by
-default; keep it that way. If worktrees are the disk hog, that is Jingler
-housekeeping (remove stale sessions from within Jingler), not a mole job.
+**Agent-harness data is NOT a cache — never purge it.** Tools that run agents in
+git worktrees (e.g. `~/conductor`, `~/jingler`, `.worktrees/` dirs) keep live,
+often uncommitted work there, frequently tens of GB. If worktrees are the disk
+hog, clean them up from within the tool that owns them, not with mole.
 
 ## When the disk is critically full
 
@@ -99,7 +99,7 @@ Order of operations for "no space left on device" on this Mac:
    ```
 2. Have the user run `! mo clean` for the deep pass (caches/logs/leftovers).
 3. `mo analyze --json ~` (or a suspected subtree) to find remaining hogs.
-4. Surface large user-data hogs (e.g. `~/jingler/worktrees`) to the user for a
+4. Surface large user-data hogs (e.g. agent worktree directories) to the user for a
    decision — do not auto-delete them.
 
 ## Other commands

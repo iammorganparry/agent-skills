@@ -233,7 +233,7 @@ vi.mock("./calculatePrice");
 const result = calculatePrice(100); // tests the mock, not your code
 
 // GOOD: Mock only external dependencies
-vi.mock("@trigify/prisma"); // mock the DB, test the service logic
+vi.mock("@/lib/db"); // mock the DB, test the service logic
 const result = await pricingService.calculatePrice(100);
 ```
 
@@ -409,7 +409,7 @@ EOF
 This fetch pattern is repeated 4 times. Extract to a shared utility.
 
 \`\`\`suggestion
-import { fetchApi } from '@trigify/utils';
+import { fetchApi } from '@/lib/fetch-api';
 
 const users = await fetchApi<User[]>('/api/users');
 \`\`\`

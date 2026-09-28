@@ -1,36 +1,47 @@
-# Triaging & answering PR feedback (Devin / QA agent / humans)
+# Triaging & answering PR feedback (humans / review bots / QA bots)
 
-Three feedback sources land on a PR. Each has its own marker, mechanics, and
-reply protocol. **CodeRabbit feedback is owned by the separate `pr-feedback`
-skill** — invoke that for `coderabbitai` comments rather than duplicating it here.
+Feedback lands on a PR from people and from bots. Identify each source by its
+author login, then triage every item the same way.
 
 ## Source identification
 
-| Source        | Author login                 | Marker / shape                                  |
-|---------------|------------------------------|-------------------------------------------------|
-| Devin         | `devin-ai-integration[bot]`  | inline comment body starts `<!-- devin-review-comment {...} -->`, severity flagged with 🚩 |
-| QA agent      | github-actions / runner      | PR-level comment with `<!-- qa-runner-verdict -->` + a pass/fail table |
-| CodeRabbit    | `coderabbitai`               | → use the `pr-feedback` skill                   |
-| Humans        | real logins                  | inline review comments or `CHANGES_REQUESTED` reviews |
+| Source             | How to recognise it                                                        |
+|--------------------|-----------------------------------------------------------------------------|
+| Humans             | real logins; inline review comments or `CHANGES_REQUESTED` reviews          |
+| Review bots        | logins ending `[bot]` or known bot accounts — e.g. `devin-ai-integration[bot]`, `coderabbitai[bot]`, `copilot-pull-request-reviewer[bot]`, `greptile-apps[bot]`, `sourcery-ai[bot]` |
+| QA / preview bots  | a PR-level comment from a bot or Actions run with a pass/fail table, often behind an HTML marker (`<!-- …verdict… -->`) |
+| Status-only bots   | Vercel, Netlify, Codecov, Socket, Dependabot — informational; act only when they gate merge |
 
-`scripts/pr-status.sh` groups all of these and prints the QA verdict in full.
+`scripts/pr-status.sh` groups inline comments and PR-level comments by author and
+prints the latest bot comment that looks like a verdict (override the match with
+`QA_MARKER=<text>`).
 
-## Devin & human inline comments
+If a dedicated skill exists for a specific bot's workflow (for example a
+CodeRabbit feedback skill), prefer it for that bot's comments.
 
-Read each thread, then **question it before acting** (per `pr-feedback` philosophy):
-is it a real issue, does it fit project conventions in `CLAUDE.md`, is it actionable?
-Take one of three actions — Address / Decline / Clarify — and reply concisely (≤3
-sentences, lead with ✅ / ❌ / ❓).
+## Review threads (humans and bots)
+
+Read each thread, then **question it before acting**: is it a real issue, does it
+fit the repo's conventions (agent docs, linters, existing patterns), is it in scope
+for this PR? Take one of three actions and reply concisely (≤3 sentences, lead
+with ✅ / ❌ / ❓):
+
+- **Address** — make the change, reply with the SHA.
+- **Decline** — explain why (wrong, out of scope, conflicts with conventions).
+- **Clarify** — ask the one question that unblocks it.
+
+Bots are wrong more often than humans; decline confidently when they are, but
+never ignore a comment silently.
 
 Fetch full bodies (pr-status.sh truncates to 200 chars):
 ```bash
 gh api repos/{owner}/{repo}/pulls/{PR}/comments --paginate \
-  | jq -r '.[] | select(.user.login=="devin-ai-integration[bot]") | "### \(.path):\(.line)\n\(.body)\n"'
+  | jq -r '.[] | select(.in_reply_to_id == null) | "### [\(.user.login)] \(.path):\(.line // .original_line)  (id \(.id))\n\(.body)\n"'
 ```
 
-Reply in-thread (use the comment `id` from pr-status.sh):
+Reply in-thread (use the comment `id`):
 ```bash
-gh api repos/{owner}/{repo}/pulls/comments/{COMMENT_ID}/replies \
+gh api repos/{owner}/{repo}/pulls/{PR}/comments/{COMMENT_ID}/replies \
   -f body="✅ Addressed in <sha> — <one line what changed>."
 ```
 
@@ -40,38 +51,34 @@ gh api repos/{owner}/{repo}/pulls/comments/{COMMENT_ID}/replies \
 gh api graphql -f query='
 { repository(owner:"OWNER", name:"REPO") {
     pullRequest(number: PR) { reviewThreads(first:100) {
-      nodes { id isResolved comments(first:1){nodes{author{login} path}} } } } } }'
+      nodes { id isResolved comments(first:1){nodes{author{login} path body}} } } } } }'
 # resolve one
 gh api graphql -f query='mutation{ resolveReviewThread(input:{threadId:"THREAD_ID"}){thread{isResolved}} }'
 ```
 Only resolve threads you actually addressed or that the author confirms. Leave
-Declined/Clarify threads open with your reply so the human can weigh in.
+Declined/Clarify threads open with your reply so a human can weigh in.
 
-Batch all code changes into focused commits, run the verify gate (`yarn typecheck
-&& yarn lint` minimum), push once, then post the `✅ Addressed in <sha>` replies.
+Batch code changes into focused commits, run the repo's verify gate, push once,
+then post the `✅ Addressed in <sha>` replies.
 
-## QA agent verdict
+## QA / preview-test bot verdicts
 
-The verdict table has per-step `pass`/`fail` and a `Summary`. `reproduced_bug: true`
-means the original bug was still reproducible on the preview — treat that as a hard
-blocker. The QA agent re-runs automatically on each new Preview deployment
-(`deployment_status` → `QA Verify / qa`), so **the loop is: fix → push → wait for the
-new preview → re-read the verdict**. You do not trigger it manually.
+Some repos run an agent or E2E suite against each preview deployment and post a
+verdict. Treat any failing step as a blocker. These usually re-run on each new
+preview, so the loop is: **fix → push → wait for the new preview → re-read the
+verdict**.
 
-Respond to QA findings by **fixing the product behaviour**, not by editing the QA
-checklist to dodge the step. The checklist lives in the PR body between
-`<!-- qa-checklist:v1 -->` … `<!-- /qa-checklist -->`; only edit it if a step is
-genuinely wrong (bad route, stale label) — and say so in a PR comment. If the change
-is truly not user-facing, the checklist should be `Not user-facing — no browser QA
-required.` and the QA check will no-op.
+Respond by **fixing the product behaviour**, not by editing the QA checklist or
+test plan to dodge the step. Only change the checklist if a step is genuinely
+wrong (bad route, stale label) — and say so in a PR comment.
 
-A QA failure that is real and in-scope → fix it. A QA failure caused by preview-env
-flakiness (seed data, third-party outage) → flag to the user with evidence from the
-verdict's Evidence column; do not paper over it.
+A real, in-scope QA failure → fix it. A failure caused by preview-environment
+flakiness (seed data, third-party outage) → flag to the user with the verdict's
+evidence; do not paper over it.
 
 ## Reviews (approvals / change requests)
 ```bash
 gh pr view {PR} --json reviews --jq '.reviews[] | "\(.author.login): \(.state)"'
 ```
-A `CHANGES_REQUESTED` from a human gates merge until they re-review — address the
+A human `CHANGES_REQUESTED` gates merge until they re-review — address the
 points, reply, and ping that the changes are pushed. Never dismiss a human review.

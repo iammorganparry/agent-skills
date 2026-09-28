@@ -3,7 +3,7 @@
 #
 # Prints a consolidated "babysitting dashboard" for a PR: CI checks (with the
 # run id needed to pull failed logs), open review threads grouped by author
-# (Devin / CodeRabbit / humans), and the QA agent's machine verdict.
+# (humans and review bots), and the latest QA/preview bot verdict.
 #
 # Defaults to the current branch's PR when PR_NUMBER is omitted.
 # Read-only: fetches state only, never edits the PR.
@@ -70,15 +70,20 @@ if [[ "$total" != "0" ]]; then
 fi
 
 echo
-echo "── PR-LEVEL COMMENTS & QA VERDICT ─────────────────────────────"
+echo "── PR-LEVEL COMMENTS & BOT VERDICTS ───────────────────────────"
 issue_json="$(gh api "repos/$REPO/issues/$PR/comments" --paginate 2>/dev/null || echo '[]')"
-# QA agent verdict carries the marker <!-- qa-runner-verdict -->
-qa="$(echo "$issue_json" | jq -r '[.[]|select(.body|contains("qa-runner-verdict"))]|last // empty')"
+# A QA/preview bot verdict: the latest comment containing $QA_MARKER, or by
+# default the latest bot comment that mentions a verdict / pass / fail.
+qa="$(echo "$issue_json" | jq -r --arg m "${QA_MARKER:-}" '
+  [ .[] | select(
+      if $m != "" then (.body | contains($m))
+      else ((.user.type == "Bot") and (.body | test("verdict|\\b(pass|fail)(ed)?\\b"; "i")))
+      end ) ] | last // empty')"
 if [[ -n "$qa" ]]; then
-  echo "🤖 QA agent verdict (latest):"
+  echo "🤖 Latest bot verdict ($(echo "$qa" | jq -r '.user.login')):"
   echo "$qa" | jq -r '.body' | sed 's/^/   /'
 else
-  echo "🤖 QA agent: no verdict comment yet (marker <!-- qa-runner-verdict -->)."
+  echo "🤖 No bot verdict comment found (set QA_MARKER=<text> to match a specific one)."
 fi
 echo
 echo "Other PR-level comments by author:"
